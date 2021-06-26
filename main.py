@@ -11,6 +11,7 @@ def main():
         auth_manager=SpotifyOAuth(scope='playlist-modify-private playlist-modify-public'))
 
     shuffle(sp, MY_SONGS_PLAYLIST_ID)
+    print('Starting reordering process:')
     reorder_playlist_two_clones(sp, MY_SONGS_PLAYLIST_ID)
     reorder_playlist_three_clones(sp, MY_SONGS_PLAYLIST_ID)
 

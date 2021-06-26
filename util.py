@@ -39,3 +39,4 @@ def shuffle(sp, playlist_id):
             current_index += 1
         # else: the track was moved down the playlist and
         # the track to move next slided in its place
+    print('Shuffled playlist.\n')
