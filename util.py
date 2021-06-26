@@ -40,3 +40,17 @@ def shuffle(sp, playlist_id):
         # else: the track was moved down the playlist and
         # the track to move next slided in its place
     print('Shuffled playlist.\n')
+
+
+def get_total_time(start_time):
+    end_time = time()
+    total_time = end_time - start_time
+    secs_mins_hours = 'seconds'
+    if total_time >= 3600:
+        total_time /= 3600
+        secs_mins_hours = 'hours'
+    elif total_time >= 60:
+        total_time /= 60
+        secs_mins_hours = 'minutes'
+    total_time = round(total_time, 2)
+    return f'{total_time} {secs_mins_hours}'
