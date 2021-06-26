@@ -1,16 +1,10 @@
 import math
 
-import spotipy
-from spotipy.oauth2 import SpotifyOAuth
-
-from constants import TEST_2_PLAYLIST_ID
+from constants import GOOD_PLAYLIST_ID, BEST_PLAYLIST_ID
 from util import get_nr_of_tracks, get_track_ids_names
 
-sp = spotipy.Spotify(
-    auth_manager=SpotifyOAuth(scope='playlist-modify-private playlist-modify-public'))
 
-
-def reorder_playlist_two_clones(playlist_id):
+def reorder_playlist_two_clones(sp, playlist_id):
     """
     Reorders the playlist so that the tracks that appear
     twice (clones) are not too close to each other
@@ -20,7 +14,7 @@ def reorder_playlist_two_clones(playlist_id):
     min_distance = math.floor(size / 3)
     reordered_tracks = 0
 
-    for clone in get_track_ids_names(sp, TEST_2_PLAYLIST_ID):
+    for clone in get_track_ids_names(sp, GOOD_PLAYLIST_ID):
         print(f'Processing "{clone[1]}"')
 
         playlist = sp.playlist(playlist_id, fields='tracks, name')
@@ -78,7 +72,7 @@ def reorder_playlist_two_clones(playlist_id):
         print('\nDone! Didn\'t change playlist.')
 
 
-def reorder_playlist_three_clones(playlist_id):
+def reorder_playlist_three_clones(sp, playlist_id):
     """
     Reorders the playlist so that the tracks that appear
     three times (clones) are not too close to each other
@@ -88,7 +82,7 @@ def reorder_playlist_three_clones(playlist_id):
     min_distance = math.floor(size / 4)
     reordered_tracks = 0
 
-    for clone in get_track_ids_names(sp, TEST_2_PLAYLIST_ID):
+    for clone in get_track_ids_names(sp, BEST_PLAYLIST_ID):
         print(f'Processing "{clone[1]}"')
 
         playlist = sp.playlist(playlist_id, fields='tracks, name')

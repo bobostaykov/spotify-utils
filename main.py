@@ -1,9 +1,18 @@
-from constants import TEST_PLAYLIST_ID
-from reorder import reorder_playlist_three_clones
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
+
+from constants import MY_SONGS_PLAYLIST_ID
+from reorder import reorder_playlist_two_clones, reorder_playlist_three_clones
+from util import shuffle
 
 
 def main():
-    reorder_playlist_three_clones(TEST_PLAYLIST_ID)
+    sp = spotipy.Spotify(
+        auth_manager=SpotifyOAuth(scope='playlist-modify-private playlist-modify-public'))
+
+    shuffle(sp, MY_SONGS_PLAYLIST_ID)
+    reorder_playlist_two_clones(sp, MY_SONGS_PLAYLIST_ID)
+    reorder_playlist_three_clones(sp, MY_SONGS_PLAYLIST_ID)
 
 
 if __name__ == '__main__':
