@@ -1,7 +1,24 @@
 import math
+from time import time
 
-from constants import GOOD_PLAYLIST_ID, BEST_PLAYLIST_ID
-from util import get_nr_of_tracks, get_track_ids_names
+from constants import GOOD_PLAYLIST_ID, BEST_PLAYLIST_ID, \
+    MIN_DISTANCE_THREE_CLONES_AS_FRACTION, \
+    MIN_DISTANCE_TWO_CLONES_AS_FRACTION
+from util import get_nr_of_tracks, get_tracks, get_total_time
+
+
+def reorder(sp, playlist_id):
+    """
+    Runs the reordering process for double and for triple clones,
+    and displays the total time needed
+    """
+    print('\nStarted reordering...')
+    start_time = time()
+    reorder_playlist_two_clones(sp, playlist_id)
+    reorder_playlist_three_clones(sp, playlist_id)
+    playlist_size = get_nr_of_tracks(sp, playlist_id)
+    print(
+        f'Total: {playlist_size} tracks in {get_total_time(start_time)}.')
 
 
 def reorder_playlist_two_clones(sp, playlist_id):
@@ -9,14 +26,15 @@ def reorder_playlist_two_clones(sp, playlist_id):
     Reorders the playlist so that the tracks that appear
     twice (clones) are not too close to each other
     """
+
     size = get_nr_of_tracks(sp, playlist_id)
     # Minimal distance between two clones of the same track
-    min_distance = math.floor(size / 3)
+    min_distance = math.floor(size * MIN_DISTANCE_TWO_CLONES_AS_FRACTION)
     reordered_tracks = 0
 
-    for clone in get_track_ids_names(sp, GOOD_PLAYLIST_ID):
-        print(f'Processing "{clone[1]}"')
-
+    for clone in get_tracks(sp, GOOD_PLAYLIST_ID):
+        clone_id = clone[0]
+        clone_name = clone[1]
         playlist = sp.playlist(playlist_id, fields='tracks, name')
         playlist_tracks = playlist['tracks']
         page_size = playlist_tracks['limit']
@@ -35,7 +53,7 @@ def reorder_playlist_two_clones(sp, playlist_id):
                     # stop searching for the second clone
                     distance_already_enough = True
                     break
-                if page[i]['track']['id'] == clone[0]:
+                if page[i]['track']['id'] == clone_id:
                     if first_clone_index == -1:
                         first_clone_index = current_track_index
                     else:
@@ -45,20 +63,24 @@ def reorder_playlist_two_clones(sp, playlist_id):
                 # Executed only if we don't break out of the inner-most for loop
                 if not playlist_tracks['next']:
                     break
-                sp.next(playlist_tracks)
+                playlist_tracks = sp.next(playlist_tracks)
                 page_index += 1
                 continue
             # Executed only if we break out the inner-most for loop
             break
 
         if first_clone_index == -1:
-            print(f'   Track not present in playlist "{playlist["name"]}"')
+            print(
+                f'[x] Track "{clone_name}" not present in playlist "{playlist["name"]}"')
         elif second_clone_index == -1:
             if not distance_already_enough:
-                print(f'   Track does not have a clone in playlist "{playlist["name"]}"')
+                print(
+                    f'[x] Track "{clone_name}" does not have a clone in playlist "{playlist["name"]}"')
         else:
             # Loop to the beginning of the playlist if the index
             # to insert on is larger than the playlist size
+            print(
+                f'Clones of track "{clone_name}" too close (indices: {first_clone_index}, {second_clone_index}), reordering.')
             index_to_insert_on = (first_clone_index + min_distance) % size
             sp.playlist_reorder_items(playlist_id,
                                       range_start=second_clone_index,
@@ -67,9 +89,10 @@ def reorder_playlist_two_clones(sp, playlist_id):
 
     if reordered_tracks:
         tracks = 'track' if reordered_tracks == 1 else 'tracks'
-        print(f'\nDone! Reordered {reordered_tracks} {tracks}.')
+        print(
+            f'Completed reordering of double clones! Reordered {reordered_tracks} {tracks}.\n')
     else:
-        print('\nDone! Didn\'t change playlist.')
+        print('Completed reordering of double clones! Didn\'t change playlist.\n')
 
 
 def reorder_playlist_three_clones(sp, playlist_id):
@@ -77,14 +100,15 @@ def reorder_playlist_three_clones(sp, playlist_id):
     Reorders the playlist so that the tracks that appear
     three times (clones) are not too close to each other
     """
+
     size = get_nr_of_tracks(sp, playlist_id)
     # Minimal distance between any two clones of the same track
-    min_distance = math.floor(size / 4)
+    min_distance = math.floor(size * MIN_DISTANCE_THREE_CLONES_AS_FRACTION)
     reordered_tracks = 0
 
-    for clone in get_track_ids_names(sp, BEST_PLAYLIST_ID):
-        print(f'Processing "{clone[1]}"')
-
+    for clone in get_tracks(sp, BEST_PLAYLIST_ID):
+        clone_id = clone[0]
+        clone_name = clone[1]
         playlist = sp.playlist(playlist_id, fields='tracks, name')
         playlist_tracks = playlist['tracks']
         page_size = playlist_tracks['limit']
@@ -107,7 +131,7 @@ def reorder_playlist_three_clones(sp, playlist_id):
                     # already >= the minimal one, stop searching for the third clone
                     distance_already_enough = True
                     break
-                if page[i]['track']['id'] == clone[0]:
+                if page[i]['track']['id'] == clone_id:
                     if first_clone_index == -1:
                         first_clone_index = current_track_index
                     elif second_clone_index == -1:
@@ -120,27 +144,31 @@ def reorder_playlist_three_clones(sp, playlist_id):
                 # Executed only if we don't break out of the inner-most for loop
                 if not playlist_tracks['next']:
                     break
-                sp.next(playlist_tracks)
+                playlist_tracks = sp.next(playlist_tracks)
                 page_index += 1
                 continue
             # Executed only if we break out the inner-most for loop
             break
 
         if first_clone_index == -1:
-            print(f'   Track not present in playlist "{playlist["name"]}"')
+            print(
+                f'[x] Track "{clone_name}" not present in playlist "{playlist["name"]}"')
         elif second_clone_index == -1:
             print(
-                f'   Track does not have a second clone in playlist "{playlist["name"]}"')
+                f'[x] Track "{clone_name}" does not have a second clone in playlist "{playlist["name"]}"')
         elif third_clone_index == -1:
             if not distance_already_enough:
                 print(
-                    f'   Track does not have a third clone in playlist "{playlist["name"]}"')
+                    f'[x] Track "{clone_name}" does not have a third clone in playlist "{playlist["name"]}"')
         else:
             # Have to reorder playlist.
             # Loop to the beginning of the playlist if the position
             # to insert on is larger than the playlist size.
             # Having to increments and decrements by 1 is a result of the
             # moving element leaving one empty space behind.
+
+            print(
+                f'Clones of track "{clone_name}" too close (indices: {first_clone_index}, {second_clone_index}, {third_clone_index}), reordering.')
 
             if second_clone_index - first_clone_index < min_distance:
                 decrement = False
@@ -214,6 +242,7 @@ def reorder_playlist_three_clones(sp, playlist_id):
 
     if reordered_tracks:
         tracks = 'track' if reordered_tracks == 1 else 'tracks'
-        print(f'\nDone! Reordered {reordered_tracks} {tracks}.')
+        print(
+            f'Completed reordering of triple clones! Reordered {reordered_tracks} {tracks}.')
     else:
-        print('\nDone! Didn\'t change playlist.')
+        print('Completed reordering of triple clones! Didn\'t change playlist.')

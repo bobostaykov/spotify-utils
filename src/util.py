@@ -1,7 +1,8 @@
 import random
+from time import time
 
 
-def get_track_ids_names(sp, playlist_id):
+def get_tracks(sp, playlist_id):
     """
     Returns a tuple of the form (id, name) of all
     the tracks in the playlist with the given ID
@@ -28,6 +29,8 @@ def shuffle(sp, playlist_id):
     """
     Shuffles the tracks of the playlist with the given ID
     """
+    print('Started shuffle...')
+    start_time = time()
     playlist_size = get_nr_of_tracks(sp, playlist_id)
     current_index = 0
     for i in range(playlist_size):
@@ -39,10 +42,13 @@ def shuffle(sp, playlist_id):
             current_index += 1
         # else: the track was moved down the playlist and
         # the track to move next slided in its place
-    print('Shuffled playlist.\n')
+    print(f'Shuffled playlist: {playlist_size} tracks in {get_total_time(start_time)}')
 
 
 def get_total_time(start_time):
+    """
+    Returns the time elapsed since the start_time in a human readable way
+    """
     end_time = time()
     total_time = end_time - start_time
     secs_mins_hours = 'seconds'
