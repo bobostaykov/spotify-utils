@@ -60,3 +60,29 @@ def get_total_time(start_time):
         secs_mins_hours = 'minutes'
     total_time = round(total_time, 2)
     return f'{total_time} {secs_mins_hours}'
+
+
+def get_intersection(sp, playlist1_id, playlist2_id):
+    """
+    Returns a tuple of the form (id, name) of all
+    the tracks present in both playlists
+    """
+
+    playlist1_name = sp.playlist(playlist1_id, fields='name')['name']
+    playlist2_name = sp.playlist(playlist2_id, fields='name')['name']
+    playlist1_tracks = get_tracks(sp, playlist1_id)
+    playlist2_tracks = get_tracks(sp, playlist2_id)
+    smaller_playlist = playlist1_tracks if len(playlist1_tracks) < len(
+        playlist2_tracks) else playlist2_tracks
+    larger_playlist = playlist1_tracks if len(playlist1_tracks) >= len(
+        playlist2_tracks) else playlist2_tracks
+
+    intersection = [track for track in smaller_playlist if track in larger_playlist]
+
+    if intersection:
+        print(f'Intersection of playlists "{playlist1_name}" and "{playlist2_name}":')
+        [print(f'   {track[1]}') for track in intersection]
+    else:
+        print(f'Playlists "{playlist1_name}" and "{playlist2_name}" have no tracks in common')
+
+    return intersection
