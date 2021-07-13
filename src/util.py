@@ -86,3 +86,27 @@ def get_intersection(sp, playlist1_id, playlist2_id):
         print(f'Playlists "{playlist1_name}" and "{playlist2_name}" have no tracks in common')
 
     return intersection
+
+
+def get_difference(sp, base_playlist_id, playlist2_id):
+    """
+    Returns a tuple of the form (id, name) of all the tracks present
+    in the first playlist but missing from the second one
+    """
+
+    base_playlist_name = sp.playlist(base_playlist_id, fields='name')['name']
+    playlist2_name = sp.playlist(playlist2_id, fields='name')['name']
+    base_playlist_tracks = get_tracks(sp, base_playlist_id)
+    playlist2_tracks = get_tracks(sp, playlist2_id)
+
+    difference = [track for track in base_playlist_tracks if
+                  track not in playlist2_tracks]
+
+    if difference:
+        print(
+            f'Tracks from "{base_playlist_name}" that are missing from "{playlist2_name}":')
+        [print(f'   {track[1]}') for track in difference]
+    else:
+        print(f'"{playlist2_name}" contains all tracks from "{base_playlist_name}"')
+
+    return difference
