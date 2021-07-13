@@ -1,8 +1,8 @@
 import math
 from time import time
 
-from constants import MIN_DISTANCE_TWO_CLONES_AS_FRACTION, \
-    MIN_DISTANCE_THREE_CLONES_AS_FRACTION
+from constants import LOW_MIN_DISTANCE_TWO_CLONES_AS_FRACTION, \
+    LOW_MIN_DISTANCE_THREE_CLONES_AS_FRACTION
 from util import get_nr_of_tracks, get_total_time
 
 
@@ -24,8 +24,9 @@ def test(sp, playlist_id):
     # Adding a margin of 15 because, when reordering tracks, after setting two clones
     # <min_distance> tracks apart, tracks between the two clones may move and make the
     # distance a little smaller
-    min_distance = math.floor(playlist_size * min(MIN_DISTANCE_TWO_CLONES_AS_FRACTION,
-                                                  MIN_DISTANCE_THREE_CLONES_AS_FRACTION) - 15)
+    min_distance = math.floor(
+        playlist_size * min(LOW_MIN_DISTANCE_TWO_CLONES_AS_FRACTION,
+                            LOW_MIN_DISTANCE_THREE_CLONES_AS_FRACTION) - 15)
     tracks = sp.playlist(playlist_id, fields='tracks')['tracks']
     page_size = tracks['limit']
     page_index = 0

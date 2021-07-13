@@ -1,5 +1,8 @@
 import random
+import sys
 from time import time
+
+from src.constants import USER_ID
 
 
 def get_tracks(sp, playlist_id):
@@ -62,6 +65,17 @@ def get_total_time(start_time):
     return f'{total_time} {secs_mins_hours}'
 
 
+def get_playlist_id(sp, playlist_name):
+    """
+    Given the playlist's name, returns its ID
+    """
+    playlists = sp.user_playlists(USER_ID)['items']
+    for playlist in playlists:
+        if playlist['name'].lower() == playlist_name.lower():
+            return playlist['id']
+    sys.exit(f'No playlist with name "{playlist_name}" found')
+
+
 def get_intersection(sp, playlist1_id, playlist2_id):
     """
     Returns a tuple of the form (id, name) of all
@@ -83,7 +97,8 @@ def get_intersection(sp, playlist1_id, playlist2_id):
         print(f'Intersection of playlists "{playlist1_name}" and "{playlist2_name}":')
         [print(f'   {track[1]}') for track in intersection]
     else:
-        print(f'Playlists "{playlist1_name}" and "{playlist2_name}" have no tracks in common')
+        print(
+            f'Playlists "{playlist1_name}" and "{playlist2_name}" have no tracks in common')
 
     return intersection
 

@@ -1,41 +1,43 @@
 import math
+from random import randint
 from time import time
 
-from constants import GOOD_PLAYLIST_ID, BEST_PLAYLIST_ID, \
-    MIN_DISTANCE_THREE_CLONES_AS_FRACTION, \
-    MIN_DISTANCE_TWO_CLONES_AS_FRACTION
+from constants import LOW_MIN_DISTANCE_TWO_CLONES_AS_FRACTION, \
+    HIGH_MIN_DISTANCE_TWO_CLONES_AS_FRACTION, LOW_MIN_DISTANCE_THREE_CLONES_AS_FRACTION, \
+    HIGH_MIN_DISTANCE_THREE_CLONES_AS_FRACTION
 from util import get_nr_of_tracks, get_tracks, get_total_time
 
 
-def reorder(sp, playlist_id):
+def reorder(sp, main_playlist_id, good_playlist_id, best_playlist_id):
     """
     Runs the reordering process for double and for triple clones,
     and displays the total time needed
     """
     print('\nStarted reordering...')
     start_time = time()
-    reorder_playlist_two_clones(sp, playlist_id)
-    reorder_playlist_three_clones(sp, playlist_id)
-    playlist_size = get_nr_of_tracks(sp, playlist_id)
-    print(
-        f'Total: {playlist_size} tracks in {get_total_time(start_time)}.')
+    reorder_playlist_two_clones(sp, main_playlist_id, good_playlist_id)
+    reorder_playlist_three_clones(sp, main_playlist_id, best_playlist_id)
+    playlist_size = get_nr_of_tracks(sp, main_playlist_id)
+    print(f'Total: {playlist_size} tracks in {get_total_time(start_time)}.')
 
 
-def reorder_playlist_two_clones(sp, playlist_id):
+def reorder_playlist_two_clones(sp, main_playlist_id, good_playlist_id):
     """
     Reorders the playlist so that the tracks that appear
     twice (clones) are not too close to each other
     """
 
-    size = get_nr_of_tracks(sp, playlist_id)
-    # Minimal distance between two clones of the same track
-    min_distance = math.floor(size * MIN_DISTANCE_TWO_CLONES_AS_FRACTION)
+    size = get_nr_of_tracks(sp, main_playlist_id)
     reordered_tracks = 0
 
-    for clone in get_tracks(sp, GOOD_PLAYLIST_ID):
+    for clone in get_tracks(sp, good_playlist_id):
+        # Minimal distance between two clones of the same track
+        min_distance = randint(
+            math.floor(size * LOW_MIN_DISTANCE_TWO_CLONES_AS_FRACTION),
+            math.floor(size * HIGH_MIN_DISTANCE_TWO_CLONES_AS_FRACTION))
         clone_id = clone[0]
         clone_name = clone[1]
-        playlist = sp.playlist(playlist_id, fields='tracks, name')
+        playlist = sp.playlist(main_playlist_id, fields='tracks, name')
         playlist_tracks = playlist['tracks']
         page_size = playlist_tracks['limit']
         first_clone_index = -1
@@ -82,7 +84,7 @@ def reorder_playlist_two_clones(sp, playlist_id):
             print(
                 f'Clones of track "{clone_name}" too close (indices: {first_clone_index}, {second_clone_index}), reordering.')
             index_to_insert_on = (first_clone_index + min_distance) % size
-            sp.playlist_reorder_items(playlist_id,
+            sp.playlist_reorder_items(main_playlist_id,
                                       range_start=second_clone_index,
                                       insert_before=index_to_insert_on)
             reordered_tracks += 1
@@ -95,21 +97,23 @@ def reorder_playlist_two_clones(sp, playlist_id):
         print('Completed reordering of double clones! Didn\'t change playlist.\n')
 
 
-def reorder_playlist_three_clones(sp, playlist_id):
+def reorder_playlist_three_clones(sp, main_playlist_id, best_playlist_id):
     """
     Reorders the playlist so that the tracks that appear
     three times (clones) are not too close to each other
     """
 
-    size = get_nr_of_tracks(sp, playlist_id)
-    # Minimal distance between any two clones of the same track
-    min_distance = math.floor(size * MIN_DISTANCE_THREE_CLONES_AS_FRACTION)
+    size = get_nr_of_tracks(sp, main_playlist_id)
     reordered_tracks = 0
 
-    for clone in get_tracks(sp, BEST_PLAYLIST_ID):
+    for clone in get_tracks(sp, best_playlist_id):
+        # Minimal distance between any two clones of the same track
+        min_distance = randint(
+            math.floor(size * LOW_MIN_DISTANCE_THREE_CLONES_AS_FRACTION),
+            math.floor(size * HIGH_MIN_DISTANCE_THREE_CLONES_AS_FRACTION))
         clone_id = clone[0]
         clone_name = clone[1]
-        playlist = sp.playlist(playlist_id, fields='tracks, name')
+        playlist = sp.playlist(main_playlist_id, fields='tracks, name')
         playlist_tracks = playlist['tracks']
         page_size = playlist_tracks['limit']
         first_clone_index = -1
@@ -177,7 +181,7 @@ def reorder_playlist_three_clones(sp, playlist_id):
                 if index_to_insert_second_clone_on > second_clone_index:
                     index_to_insert_second_clone_on += 1
                     decrement = True
-                sp.playlist_reorder_items(playlist_id,
+                sp.playlist_reorder_items(main_playlist_id,
                                           range_start=second_clone_index,
                                           insert_before=index_to_insert_second_clone_on)
                 if first_clone_index > index_to_insert_second_clone_on:
@@ -195,7 +199,7 @@ def reorder_playlist_three_clones(sp, playlist_id):
                 if index_to_insert_third_clone_on > third_clone_index:
                     index_to_insert_third_clone_on += 1
                     decrement = True
-                sp.playlist_reorder_items(playlist_id,
+                sp.playlist_reorder_items(main_playlist_id,
                                           range_start=third_clone_index,
                                           insert_before=index_to_insert_third_clone_on)
                 third_clone_index = (index_to_insert_third_clone_on - 1 if decrement
@@ -218,7 +222,7 @@ def reorder_playlist_three_clones(sp, playlist_id):
                 if index_to_insert_clone_on > max(first_clone_index, third_clone_index):
                     index_to_insert_clone_on += 1
                     decrement = True
-                sp.playlist_reorder_items(playlist_id,
+                sp.playlist_reorder_items(main_playlist_id,
                                           range_start=max(first_clone_index,
                                                           third_clone_index),
                                           insert_before=index_to_insert_clone_on)
@@ -235,7 +239,7 @@ def reorder_playlist_three_clones(sp, playlist_id):
                 if index_to_insert_clone_on > max(lastly_moved_clone_index,
                                                   second_clone_index):
                     index_to_insert_clone_on += 1
-                sp.playlist_reorder_items(playlist_id,
+                sp.playlist_reorder_items(main_playlist_id,
                                           range_start=max(lastly_moved_clone_index,
                                                           second_clone_index),
                                           insert_before=index_to_insert_clone_on)
