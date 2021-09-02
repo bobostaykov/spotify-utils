@@ -36,7 +36,7 @@ def shuffle(sp, playlist_id):
     start_time = time()
     playlist_size = get_nr_of_tracks(sp, playlist_id)
     current_index = 0
-    for i in range(playlist_size):
+    while current_index < playlist_size:
         random_index = random.randrange(playlist_size)
         sp.playlist_reorder_items(playlist_id,
                                   range_start=current_index,
