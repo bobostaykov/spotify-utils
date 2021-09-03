@@ -2,6 +2,8 @@ import random
 import sys
 from time import time
 
+from sortedcontainers import SortedList
+
 from src.constants import USER_ID
 
 
@@ -36,15 +38,25 @@ def shuffle(sp, playlist_id):
     start_time = time()
     playlist_size = get_nr_of_tracks(sp, playlist_id)
     current_index = 0
+    # Keep track of tracks already reordered
+    indices_already_processed = SortedList()
     while current_index < playlist_size:
         random_index = random.randrange(playlist_size)
         sp.playlist_reorder_items(playlist_id,
                                   range_start=current_index,
                                   insert_before=random_index + 1)
-        if random_index <= current_index:
+        # The already processed indices change due to track reordering
+        if random_index > current_index:
+            indices_already_processed = SortedList(
+                [index - 1 if current_index < index <= random_index else index
+                 for index in indices_already_processed])
+        elif random_index < current_index:
+            indices_already_processed = SortedList(
+                [index + 1 if random_index <= index < current_index else index
+                 for index in indices_already_processed])
+        indices_already_processed.add(random_index)
+        while current_index in indices_already_processed:
             current_index += 1
-        # else: the track was moved down the playlist and
-        # the track to move next slided in its place
     print(f'Shuffled playlist: {playlist_size} tracks in {get_total_time(start_time)}')
 
 

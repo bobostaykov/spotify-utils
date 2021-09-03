@@ -41,7 +41,9 @@ def main():
     args = parser.parse_args()
 
     sp = spotipy.Spotify(
-        auth_manager=SpotifyOAuth(scope='playlist-modify-private playlist-modify-public'))
+        auth_manager=SpotifyOAuth(scope='playlist-modify-private playlist-modify-public'),
+        requests_timeout=10,
+        retries=10)
 
     if args.intersection:
         playlist1_id = get_playlist_id(sp, args.intersection[0])
