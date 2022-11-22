@@ -1,3 +1,4 @@
+import time
 from argparse import ArgumentParser
 from dotenv import load_dotenv
 
@@ -7,7 +8,7 @@ from spotipy.oauth2 import SpotifyOAuth
 
 from reorder import reorder
 from test import test
-from util import shuffle, get_intersection, get_playlist_id, get_difference
+from util import shuffle, get_intersection, get_playlist_id, get_difference, get_total_time
 
 
 @Gooey(program_name='Spotify Utilities', default_size=(800, 700))
@@ -42,6 +43,8 @@ def main():
 
     args = parser.parse_args()
 
+    start_time = time.time()
+
     sp = spotipy.Spotify(
         auth_manager=SpotifyOAuth(scope='playlist-modify-private playlist-modify-public'),
         requests_timeout=100,
@@ -65,6 +68,8 @@ def main():
             reorder(sp, main_playlist_id, good_playlist_id, best_playlist_id)
         if not args.no_test:
             test(sp, main_playlist_id)
+
+    print(f'\nTotal time: {get_total_time(start_time)}')
 
 
 if __name__ == '__main__':

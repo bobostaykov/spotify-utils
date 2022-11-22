@@ -62,8 +62,9 @@ def shuffle(sp, playlist_id):
 
 def get_total_time(start_time):
     """
-    Returns the time elapsed since the start_time in a human readable way
+    Returns the time elapsed since the start_time in a human-readable way
     """
+
     end_time = time()
     total_time = end_time - start_time
     secs_mins_hours = 'seconds'
