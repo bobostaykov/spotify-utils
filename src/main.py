@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+from dotenv import load_dotenv
 
 import spotipy
 from gooey import Gooey
@@ -11,6 +12,7 @@ from util import shuffle, get_intersection, get_playlist_id, get_difference
 
 @Gooey(program_name='Spotify Utilities', default_size=(800, 700))
 def main():
+    load_dotenv()
     parser = ArgumentParser(prog='Spotify Utils')
 
     parser.add_argument('--main_playlist',
@@ -42,7 +44,7 @@ def main():
 
     sp = spotipy.Spotify(
         auth_manager=SpotifyOAuth(scope='playlist-modify-private playlist-modify-public'),
-        requests_timeout=10,
+        requests_timeout=100,
         retries=10)
 
     if args.intersection:

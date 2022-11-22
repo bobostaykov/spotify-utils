@@ -4,7 +4,7 @@ from time import time
 
 from sortedcontainers import SortedList
 
-from src.constants import USER_ID
+from constants import USER_ID
 
 
 def get_tracks(sp, playlist_id):
