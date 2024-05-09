@@ -1,87 +1,43 @@
-import random
 import sys
 from time import time
 
-from sortedcontainers import SortedList
+import math
 
-from constants import USER_ID
+from constants import USER_ID, TEST_MIN_DISTANCE
 
 
 def get_tracks(sp, playlist_id):
     """
-    Returns a tuple of the form (id, name) of all
-    the tracks in the playlist with the given ID
+    Returns a dict with id, URI, name and is_local for all the
+    tracks in the playlist with the given ID
     """
+
     result = []
-    tracks = sp.playlist(playlist_id, fields='tracks')['tracks']
+    page_size = 100
+    offset = 0
     while True:
-        result.extend([(item['track']['id'], item['track']['name']) for item in
-                       tracks['items']])
-        if not tracks['next']:
+        track_batch = sp.playlist_items(playlist_id, limit=page_size, offset=offset)
+        result.extend([{
+            'id': item['track']['id'],
+            'uri': item['track']['uri'],
+            'name': item['track']['name'],
+            'is_local': item['track']['is_local'],
+        } for item in track_batch['items']])
+        if not track_batch['next']:
             break
-        tracks = sp.next(tracks)
+        offset += page_size
     return result
 
 
 def get_nr_of_tracks(sp, playlist_id):
-    """
-    Returns the number of tracks in the playlist with the given ID
-    """
-    return sp.playlist(playlist_id, fields='tracks')['tracks']['total']
+    """ Returns the number of tracks in the playlist with the given ID """
 
-
-def shuffle(sp, playlist_id):
-    """
-    Shuffles the tracks of the playlist with the given ID
-    """
-    print('Started shuffle...')
-    start_time = time()
-    playlist_size = get_nr_of_tracks(sp, playlist_id)
-    current_index = 0
-    # Keep track of tracks already reordered
-    indices_already_processed = SortedList()
-    while current_index < playlist_size:
-        random_index = random.randrange(playlist_size)
-        sp.playlist_reorder_items(playlist_id,
-                                  range_start=current_index,
-                                  insert_before=random_index + 1)
-        # The already processed indices change due to track reordering
-        if random_index > current_index:
-            indices_already_processed = SortedList(
-                [index - 1 if current_index < index <= random_index else index
-                 for index in indices_already_processed])
-        elif random_index < current_index:
-            indices_already_processed = SortedList(
-                [index + 1 if random_index <= index < current_index else index
-                 for index in indices_already_processed])
-        indices_already_processed.add(random_index)
-        while current_index in indices_already_processed:
-            current_index += 1
-    print(f'Shuffled playlist: {playlist_size} tracks in {get_total_time(start_time)}')
-
-
-def get_total_time(start_time):
-    """
-    Returns the time elapsed since the start_time in a human-readable way
-    """
-
-    end_time = time()
-    total_time = end_time - start_time
-    secs_mins_hours = 'seconds'
-    if total_time >= 3600:
-        total_time /= 3600
-        secs_mins_hours = 'hours'
-    elif total_time >= 60:
-        total_time /= 60
-        secs_mins_hours = 'minutes'
-    total_time = round(total_time, 2)
-    return f'{total_time} {secs_mins_hours}'
+    return sp.playlist_items(playlist_id)['total']
 
 
 def get_playlist_id(sp, playlist_name):
-    """
-    Given the playlist's name, returns its ID
-    """
+    """ Given the playlist's name, returns its ID """
+
     playlists = sp.user_playlists(USER_ID)['items']
     for playlist in playlists:
         if playlist['name'].lower() == playlist_name.lower():
@@ -89,52 +45,86 @@ def get_playlist_id(sp, playlist_name):
     sys.exit(f'No playlist with name "{playlist_name}" found')
 
 
-def get_intersection(sp, playlist1_id, playlist2_id):
+def get_total_time(start_time):
+    """ Returns the time elapsed since the start_time in a human-readable way """
+
+    end_time = time()
+    total_time = end_time - start_time
+    unit = 'seconds'
+    if total_time >= 3600:
+        total_time /= 3600
+        unit = 'hours'
+    elif total_time >= 60:
+        total_time /= 60
+        unit = 'minutes'
+    total_time = round(total_time, 2)
+    return f'{total_time} {unit}'
+
+
+def divide_in_chunks(list_to_divide, chunk_size):
+    """ Returns a list of lists - the given list divided into chunks of the given size """
+
+    return [list_to_divide[i:i + chunk_size] for i in range(0, len(list_to_divide), chunk_size)]
+
+
+def test(sp, main_playlist_id, good_playlist_id, best_playlist_id):
+    """ Checks playlists are OK """
+
+    print('\nStarted test...')
+    check_well_ordered(sp, main_playlist_id)
+    check_clones_ok(sp, main_playlist_id, good_playlist_id, best_playlist_id)
+    print('Done')
+
+
+def check_well_ordered(sp, playlist_id):
     """
-    Returns a tuple of the form (id, name) of all
-    the tracks present in both playlists
+    Checks whether the playlist is well-ordered, i.e. the tracks occurring
+    more than once (clones) are all far enough from each other
     """
 
-    playlist1_name = sp.playlist(playlist1_id, fields='name')['name']
-    playlist2_name = sp.playlist(playlist2_id, fields='name')['name']
-    playlist1_tracks = get_tracks(sp, playlist1_id)
-    playlist2_tracks = get_tracks(sp, playlist2_id)
-    smaller_playlist = playlist1_tracks if len(playlist1_tracks) < len(
-        playlist2_tracks) else playlist2_tracks
-    larger_playlist = playlist1_tracks if len(playlist1_tracks) >= len(
-        playlist2_tracks) else playlist2_tracks
+    tracks = get_tracks(sp, playlist_id)
+    playlist_size = len(tracks)
+    min_distance = math.floor(playlist_size * TEST_MIN_DISTANCE)
+    clones_too_close = 0
 
-    intersection = [track for track in smaller_playlist if track in larger_playlist]
+    # For each track in playlist check if it is too close to any of its clones. Only looks forward.
+    for track_index, track in enumerate(tracks):
+        for current_track_index in range(track_index + 1, len(tracks)):
+            if current_track_index - track_index >= min_distance:
+                # Min distance already reached, clones can not be too close
+                break
+            if tracks[current_track_index] == track:
+                track_name = track['name']
+                print(f'(!) Clones of track "{track_name}" too close! Indices: {track_index}, {current_track_index}')
+                clones_too_close += 1
 
-    if intersection:
-        print(f'Intersection of playlists "{playlist1_name}" and "{playlist2_name}":')
-        [print(f'   {track[1]}') for track in intersection]
-    else:
-        print(
-            f'Playlists "{playlist1_name}" and "{playlist2_name}" have no tracks in common')
-
-    return intersection
+    if clones_too_close == 0:
+        print(f'\nMain playlist is well ordered!\n')
 
 
-def get_difference(sp, base_playlist_id, playlist2_id):
-    """
-    Returns a tuple of the form (id, name) of all the tracks present
-    in the first playlist but missing from the second one
-    """
+def check_clones_ok(sp, main_playlist_id, good_playlist_id, best_playlist_id):
+    """ Checks whether all double clones in the playlist are present
+    in the good playlist and the same for the triple ones """
 
-    base_playlist_name = sp.playlist(base_playlist_id, fields='name')['name']
-    playlist2_name = sp.playlist(playlist2_id, fields='name')['name']
-    base_playlist_tracks = get_tracks(sp, base_playlist_id)
-    playlist2_tracks = get_tracks(sp, playlist2_id)
+    all_tracks = get_tracks(sp, main_playlist_id)
+    good_tracks = get_tracks(sp, good_playlist_id)
+    best_tracks = get_tracks(sp, best_playlist_id)
+    checked_tracks = []
 
-    difference = [track for track in base_playlist_tracks if
-                  track not in playlist2_tracks]
-
-    if difference:
-        print(
-            f'Tracks from "{base_playlist_name}" that are missing from "{playlist2_name}":')
-        [print(f'   {track[1]}') for track in difference]
-    else:
-        print(f'"{playlist2_name}" contains all tracks from "{base_playlist_name}"')
-
-    return difference
+    for track in all_tracks:
+        if track in checked_tracks:
+            continue
+        # Checking by URI because local tracks don't have ID
+        track_indices = [index for index, t in enumerate(all_tracks) if t['uri'] == track['uri']]
+        if len(track_indices) == 2:
+            checked_tracks.append(track)
+            if track not in good_tracks:
+                track_name = track['name']
+                print(
+                    f'(!) "{track_name}" is present twice in the main playlist, but not present in the good playlist.')
+        elif len(track_indices) == 3:
+            checked_tracks.append(track)
+            if track not in best_tracks:
+                track_name = track['name']
+                print(
+                    f'(!) "{track_name}" is present three times in the main playlist, but not present in the best playlist.')
