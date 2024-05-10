@@ -21,6 +21,7 @@ def get_tracks(sp, playlist_id):
             'id': item['track']['id'],
             'uri': item['track']['uri'],
             'name': item['track']['name'],
+            'artist': item['track']['artists'][0]['name'],
             'is_local': item['track']['is_local'],
         } for item in track_batch['items']])
         if not track_batch['next']:
@@ -128,3 +129,41 @@ def check_clones_ok(sp, main_playlist_id, good_playlist_id, best_playlist_id):
                 track_name = track['name']
                 print(
                     f'(!) "{track_name}" is present three times in the main playlist, but not present in the best playlist.')
+
+
+def get_youtube_search_url(artist_name: str, track_name: str) -> str:
+    """ Returns the URL to a YouTube search for
+    the given song by the given artist """
+
+    query = f'{artist_name} {track_name}'.replace(' ', '+')
+    return f'https://www.youtube.com/results?search_query={query}'
+
+
+def get_last_occurrence_index(text, char):
+    """ Returns the index of the last occurrence of the given char in the given text """
+
+    return len(text) - 1 - text[::-1].index(char)
+
+
+def get_track_name_core(track_name):
+    """ Returns the most significant part of a track name.
+    I.e. strips away things like featured artists """
+
+    stripped = track_name.split('(')[0]
+    stripped = stripped.split('-')[0]
+    stripped = stripped.split('feat')[0]
+    stripped = stripped.split('ft')[0]
+    return stripped.strip()
+
+
+class CustomLogger:
+    """ Used to suppress YoutubeDL output """
+
+    def error(self):
+        pass
+
+    def warning(self):
+        pass
+
+    def debug(self):
+        pass

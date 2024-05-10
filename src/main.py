@@ -5,34 +5,43 @@ from dotenv import load_dotenv
 from gooey import Gooey, GooeyParser
 from spotipy.oauth2 import SpotifyOAuth
 
-from features import get_intersection, get_difference, shuffle
+from features import get_intersection, get_difference, shuffle, convert_to_mp3
 from util import get_playlist_id, get_total_time, test
 
 
-@Gooey(program_name='Spotify Utilities', default_size=(800, 700))
+@Gooey(program_name='Spotify Utils', default_size=(500, 750), tabbed_groups=True, required_cols=1, optional_cols=1)
 def main():
     start_time = time.time()
 
     load_dotenv()
-    parser = GooeyParser(prog='Spotify Utils')
-    arg_group = parser.add_argument_group()
+    parser = GooeyParser()
 
-    arg_group.add_argument('--main_playlist', default='My Songs', required=True,
-                           help='Main playlist name. The playlist on which to execute actions')
-    arg_group.add_argument('--good_playlist', default='Good', required=True,
-                           help='Good playlist name. The playlist which contains the good (double) tracks')
-    arg_group.add_argument('--best_playlist', default='Best', required=True,
-                           help='Best playlist name. The playlist which contains the best (triple) tracks')
-    arg_group.add_argument('--shuffle', widget='CheckBox', default=True, action='store_false',
-                           help='  Shuffle playlist')
-    arg_group.add_argument('--reorder', widget='CheckBox', default=True, action='store_false',
-                           help='  Reorder playlist')
-    arg_group.add_argument('--test', widget='CheckBox', default=True, action='store_false',
-                           help='  Test that playlist is well-ordered')
-    arg_group.add_argument('--intersection', nargs=2,
-                           help='Two playlist names between quotation marks, separated by space. Get the intersection of the two playlists. If this function is used, the others are skipped.')
-    arg_group.add_argument('--difference', nargs=2,
-                           help='Two playlist names between quotation marks, separated by space. Get the tracks present in the first playlist but missing from the second one. If this function is used, the others are skipped (except "intersecion").')
+    shuffle_arg_group = parser.add_argument_group(title='Shuffle',
+                                                  description='Shuffle a playlist and reorder it, so that the tracks that are present twice (from Good playlist) or three times (from Best playlist) are not close to each other')
+    shuffle_arg_group.add_argument('--main_playlist', default='My Songs', help='Main playlist name',
+                                   gooey_options={'show_label': False})
+    shuffle_arg_group.add_argument('--good_playlist', default='Good', help='Good playlist name',
+                                   gooey_options={'show_label': False})
+    shuffle_arg_group.add_argument('--best_playlist', default='Best', help='Best playlist name',
+                                   gooey_options={'show_label': False})
+    shuffle_arg_group.add_argument('--shuffle', widget='CheckBox', default=True, action='store_false',
+                                   help='  Shuffle playlist', gooey_options={'show_label': False})
+    shuffle_arg_group.add_argument('--reorder', widget='CheckBox', default=True, action='store_false',
+                                   help='  Reorder playlist', gooey_options={'show_label': False})
+    shuffle_arg_group.add_argument('--test', widget='CheckBox', default=True, action='store_false',
+                                   help='  Check if playlist is well-ordered', gooey_options={'show_label': False})
+
+    mp3_arg_group = parser.add_argument_group(title='Convert to MP3',
+                                              description='Convert a playlist to MP3 files and save them locally')
+    mp3_arg_group.add_argument('--playlist', help='Playlist name', gooey_options={'show_label': False})
+    mp3_arg_group.add_argument('--save_path', help='Full path to save MP3 songs to',
+                               gooey_options={'show_label': False})
+
+    misc_arg_group = parser.add_argument_group(title='Misc')
+    misc_arg_group.add_argument('--intersection', nargs=2,
+                                help='Two playlist names between quotation marks, separated by space. Get the intersection of the two playlists')
+    misc_arg_group.add_argument('--difference', nargs=2,
+                                help='Two playlist names between quotation marks, separated by space. Get the tracks present in the first playlist but missing from the second one')
 
     args = parser.parse_args()
 
@@ -46,15 +55,19 @@ def main():
         requests_timeout=100,
         retries=10)
 
-    if args.intersection:
-        playlist1_id = get_playlist_id(sp, args.intersection[0])
-        playlist2_id = get_playlist_id(sp, args.intersection[1])
-        get_intersection(sp, playlist1_id, playlist2_id)
-    elif args.difference:
-        base_playlist_id = get_playlist_id(sp, args.difference[0])
-        playlist2_id = get_playlist_id(sp, args.difference[1])
-        get_difference(sp, base_playlist_id, playlist2_id)
-    else:
+    if args.playlist or args.save_path or args.intersection or args.difference:
+        if args.playlist and args.save_path:
+            playlist_id = get_playlist_id(sp, args.playlist)
+            convert_to_mp3(sp, playlist_id, args.save_path)
+        if args.intersection:
+            playlist1_id = get_playlist_id(sp, args.intersection[0])
+            playlist2_id = get_playlist_id(sp, args.intersection[1])
+            get_intersection(sp, playlist1_id, playlist2_id)
+        if args.difference:
+            base_playlist_id = get_playlist_id(sp, args.difference[0])
+            playlist2_id = get_playlist_id(sp, args.difference[1])
+            get_difference(sp, base_playlist_id, playlist2_id)
+    elif args.main_playlist and args.good_playlist and args.best_playlist:
         main_playlist_id = get_playlist_id(sp, args.main_playlist)
         good_playlist_id = get_playlist_id(sp, args.good_playlist)
         best_playlist_id = get_playlist_id(sp, args.best_playlist)

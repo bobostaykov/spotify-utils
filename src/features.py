@@ -1,11 +1,15 @@
 import random
+import re
 from random import randint
 
 import math
+import requests
+import yt_dlp
 
 from constants import LOW_MIN_DISTANCE_TWO_CLONES_AS_FRACTION, HIGH_MIN_DISTANCE_TWO_CLONES_AS_FRACTION, \
     LOW_MIN_DISTANCE_THREE_CLONES_AS_FRACTION, HIGH_MIN_DISTANCE_THREE_CLONES_AS_FRACTION
-from util import get_tracks, divide_in_chunks
+from util import get_tracks, divide_in_chunks, get_youtube_search_url, get_last_occurrence_index, get_track_name_core, \
+    CustomLogger
 
 
 def shuffle(sp, main_playlist_id, good_playlist_id, best_playlist_id, should_shuffle, should_reorder):
@@ -154,3 +158,89 @@ def get_difference(sp, base_playlist_id, playlist2_id):
         print(f'"{playlist2_name}" contains all tracks from "{base_playlist_name}"')
 
     return difference
+
+
+def convert_to_mp3(sp, playlist_id, save_path):
+    """ Converts the given playlist to MP3 files and saves them to the given path """
+
+    print('Getting track URLs...')
+
+    tracks = get_tracks(sp, playlist_id)
+    track_urls = []
+    # In the case of an error, the download is retried once later
+    retried_tracks = []
+    tracks_not_downloaded = []
+
+    for index, track in enumerate(tracks):
+        youtube_search_url = get_youtube_search_url(artist_name=track['artist'], track_name=track['name'])
+        try:
+            track_url = get_first_result_url(youtube_search_url, track['name'])
+        except IndexError:
+            tracks_not_downloaded.append(track)
+            continue
+        if track_url:
+            track_urls.append(track_url)
+        else:
+            if track in retried_tracks:
+                tracks_not_downloaded.append(track)
+            else:
+                tracks.append(track)
+                retried_tracks.append(track)
+
+    print('Done')
+
+    download_tracks(track_urls, save_path)
+
+    if tracks_not_downloaded:
+        print('\n(!) Could not download following tracks:')
+        for track in tracks_not_downloaded:
+            print(track['name'])
+
+
+def get_first_result_url(search_url, track_name):
+    """ Returns the URL of the first result of the search """
+
+    page = requests.get(search_url)
+    track_name_core = get_track_name_core(track_name)
+    pattern = rf'(?<={track_name_core}).*?(?<="videoId":").*?(?=")'
+    matches = re.findall(pattern, page.text, flags=re.DOTALL)
+    last_quote_index = get_last_occurrence_index(matches[0], '"')
+    video_id = matches[0][last_quote_index + 1:]
+    if not video_id:
+        return None
+    url = f'https://www.youtube.com/watch?v={video_id}'
+
+    # --- This is the right way. However, currently there is a bug in requests-html, and it doesn't work ---
+    # session = HTMLSession()
+    # response = session.get(search_url)
+    # response.html.render()
+    # suffix = response.html.xpath('//a[@class="yt-simple-endpoint inline-block style-scope ytd-thumbnail"]/@href',
+    #     first=True)
+    # if not suffix:
+    #     return None
+    # url = str(('https://www.youtube.com' + suffix))
+
+    return url
+
+
+def download_tracks(urls, save_path):
+    """ Saves the given tracks as mp3 files to the given location """
+
+    print('Downloading tracks...')
+    ydl_opts = {
+        'outtmpl': f'{save_path}/%(title)s.%(ext)s',
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        "logger": CustomLogger,
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        for url in urls:
+            try:
+                ydl.download([url])
+            except:
+                continue
+    print('Done')
