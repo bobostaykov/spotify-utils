@@ -1,7 +1,6 @@
+import math
 import sys
 from time import time
-
-import math
 
 from constants import USER_ID, TEST_MIN_DISTANCE
 
@@ -43,7 +42,7 @@ def get_playlist_id(sp, playlist_name):
     for playlist in playlists:
         if playlist['name'].lower() == playlist_name.lower():
             return playlist['id']
-    sys.exit(f'No playlist with name "{playlist_name}" found')
+    sys.exit(f'No playlist with name "{playlist_name}" found.')
 
 
 def get_total_time(start_time):
@@ -74,7 +73,7 @@ def test(sp, main_playlist_id, good_playlist_id, best_playlist_id):
     print('\nStarted test...')
     check_well_ordered(sp, main_playlist_id)
     check_clones_ok(sp, main_playlist_id, good_playlist_id, best_playlist_id)
-    print('Done')
+    print('\nDone')
 
 
 def check_well_ordered(sp, playlist_id):

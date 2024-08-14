@@ -10,7 +10,8 @@ from features import get_intersection, get_difference, shuffle, convert_to_mp3
 from util import get_playlist_id, get_total_time, test
 
 
-@Gooey(program_name='Spotify Utils', default_size=(500, 750), tabbed_groups=True, required_cols=1, optional_cols=1)
+@Gooey(program_name='Spotify Utils', default_size=(500, 750), tabbed_groups=True, required_cols=1, optional_cols=1,
+       show_success_modal=False, show_failure_modal=False)
 def main():
     start_time = time.time()
 
