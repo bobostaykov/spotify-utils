@@ -1,3 +1,4 @@
+import sys
 import time
 
 import spotipy
@@ -17,7 +18,7 @@ def main():
     parser = GooeyParser()
 
     shuffle_arg_group = parser.add_argument_group(title='Shuffle',
-                                                  description='Shuffle a playlist and reorder it, so that the tracks that are present twice (from Good playlist) or three times (from Best playlist) are not close to each other')
+                                                  description='Shuffle a playlist and reorder it, so that the tracks that are present twice (from Good playlist) or three times (from Best playlist) are not close to each other. You may just provide a main playlist and uncheck "Reorder playlist" in order to just shuffle the given playlist.')
     shuffle_arg_group.add_argument('--main_playlist', default='My Songs', help='Main playlist name',
                                    gooey_options={'show_label': False})
     shuffle_arg_group.add_argument('--good_playlist', default='Good', help='Good playlist name',
@@ -67,10 +68,16 @@ def main():
             base_playlist_id = get_playlist_id(sp, args.difference[0])
             playlist2_id = get_playlist_id(sp, args.difference[1])
             get_difference(sp, base_playlist_id, playlist2_id)
-    elif args.main_playlist and args.good_playlist and args.best_playlist:
+    elif args.main_playlist:
         main_playlist_id = get_playlist_id(sp, args.main_playlist)
-        good_playlist_id = get_playlist_id(sp, args.good_playlist)
-        best_playlist_id = get_playlist_id(sp, args.best_playlist)
+        if should_reorder or should_test:
+            if args.good_playlist is None or args.best_playlist is None:
+                sys.exit('Please provide Good and Best playlists.')
+            good_playlist_id = get_playlist_id(sp, args.good_playlist)
+            best_playlist_id = get_playlist_id(sp, args.best_playlist)
+        else:
+            good_playlist_id = None
+            best_playlist_id = None
         if should_shuffle or should_reorder:
             shuffle(sp, main_playlist_id, good_playlist_id, best_playlist_id, should_shuffle, should_reorder)
         if should_test:
