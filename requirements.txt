@@ -1,4 +1,4 @@
-spotipy==2.24.0
+spotipy==2.25.1
 Gooey~=1.0.8.1
 sortedcontainers~=2.4.0
 python-dotenv~=1.0.1
